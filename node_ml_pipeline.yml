@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: node-ml
+    name: node-ml-pipeline
+    template: node-ml-pipeline-template
+  name: node-ml-pipeline-template
+spec:
+  runPolicy: Serial
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node() {
+          stage('build') {
+            openshiftBuild(buildConfig: 'node-ml', showBuildLogs: 'true')
+          }
+          stage('deploy') {
+            openshiftDeploy(deploymentConfig: 'node-ml-app')
+          }
+ 
+          stage( 'Wait for approval')
+          input( 'Aprove to production?')
+          stage('Deploy UAT'){
+            openshiftDeploy(deploymentConfig: 'node-ml-app', namespace: 'mlnode-uat')
+          }
+
+        }
+    type: JenkinsPipeline
+  triggers:
+  - github:
+      secret: secret101
+    type: GitHub
+  - generic:
+      secret: secret101
+    type: Generic
